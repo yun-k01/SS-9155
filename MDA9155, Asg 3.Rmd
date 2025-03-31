@@ -1,0 +1,171 @@
+---
+title: "Assignment 3"
+author: "MDA 9155 - Instructor: Dr. Camila de Souza"
+date: "Winter 2025"
+output: pdf_document
+latex_engine: xelatex
+header-includes:
+- \usepackage[fontsize=12pt]{scrextend}
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(faraway)
+
+```
+
+\textbf{Student name: Yun Kyaw}
+
+\textbf{Student number: 251102171}
+
+## Question 1
+
+### a)
+begin{align}
+$$ 
+\begin{align}
+\theta &= 
+\end{align}
+$$
+
+
+\newpage
+### b)
+
+
+\newpage
+### c)
+
+
+\newpage
+### d)
+
+
+\newpage
+### e)
+
+
+\newpage
+
+## Question 2
+```{r}
+data(gala, package = "faraway")
+gala = gala[,-2]
+head(gala)
+```
+
+### a)
+```{r}
+gala_pois = glm(Species ~ ., family = poisson, data = gala)
+sumary(gala_pois)$coef
+```
+
+\newpage
+### b)
+```{r}
+eta = log(mu)
+
+z = eta + (y-mu)/mu
+
+w = 
+lmod = lm(z ~ )
+```
+x1 = gala$Area
+x2 = gala$Elevation
+x3 = gala$Nearest
+x4 = gala$Scruz
+x5 = gala$Adjacent
+
+mu = (3.1548078779 - 0.0005799429 * x1 + 0.0035405940 * x2 + 0.0088255719 * x3 - 0.0057094223 * x4 - 0.0006630311 * x5)
+eta = log(mu)
+
+d_eta = 1/mu
+
+V_mu = mu
+
+weight = 1/mu
+
+z = eta + (gala$Species - mu)/mu
+```
+
+\newpage
+### c)
+```{r}
+
+```
+
+
+\newpage
+### d)
+
+
+\newpage
+### e)
+
+
+
+\newpage
+## Question 3
+```{r}
+data(denim)
+denim <- denim[-which(denim$waste == max(denim$waste)),] #removing 2 outliers
+denim <- denim[-which(denim$waste == max(denim$waste)),]
+```
+### a)
+
+\newpage
+
+### b)
+```{r}
+lmod = lm(waste ~ supplier, denim)
+drop1(lmod, test = "F")
+```
+
+\newpage
+
+### c)
+```{r}
+library(lme4)
+rmod = lmer(waste ~ 1+(1|supplier), denim, REML = TRUE)
+summary(rmod)
+```
+
+\newpage
+
+### d)
+```{r}
+sigma2_alpha = 2.39^2 # var of random intercept
+sigma2 = 6.11^2 # var of fixed intercept
+rho = sigma2_alpha/(sigma2_alpha + sigma2)
+```
+
+\newpage
+
+### e)
+can also do f-test adjusting for effects of freedom
+```{r}
+nlmod = lm(waste ~ 1, denim)
+mmodstar = lmer(waste ~ 1 + (1|supplier), denim, REML = FALSE)
+lrt = as.numeric(2*(logLik(mmodstar) - logLik(nlmod)))
+```
+
+```{r}
+set.seed(23)
+lrt_star = numeric(1000)
+for (i in 1:1000) {
+  rwaste = unlist(simulate(nlmod))
+  nlmodr = lm(rwaste ~ w, denim)
+  mmodr = lmer(rwaste ~ 1 + (1|supplier), denim, REML = FALSE)
+  lrt_star[i] = 2*(logLik(mmodr) - logLik(nlmodr))
+}
+
+mean(lrt_star > lrt)
+
+# dont reject if > p - can remove random effect
+```
+
+

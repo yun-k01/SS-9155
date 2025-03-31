@@ -1,0 +1,488 @@
+---
+title: "Assignment 1"
+author: "MDA 9155 - Instructor: Dr. Camila de Souza"
+date: "Winter 2025"
+output: pdf_document
+latex_engine: xelatex
+header-includes:
+- \usepackage[fontsize=12pt]{scrextend}
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+\textbf{Student name: Yun Kyaw}
+
+\textbf{Student number: 251102171}
+
+## Question 1
+
+a)  *Model 0*: Given $p_B$ = 0.5, and $p_G$ = (1-$p_B$), $p_B = p_G$
+$$ \begin{aligned}
+Lik(p_B) &= p_B^{30} * p_G^{20} \\
+&= p_B^{30} * p_B^{20} \\
+&= p_B^{50}
+\end{aligned}$$
+
+*Model 1*: 
+$p_G$ = (1-$p_B$)
+$$ \begin{aligned}
+Lik(p_B) &= p_B^{30} * (1-p_B)^{20}
+\end{aligned}$$
+
+*LRT*:
+$$ \begin{aligned}
+LRT &= \frac{Model 0}{Model1} \\
+&= \frac{p_B^{50}}{p_B^{30} * (1-p_B)^{20}} \\
+&= \frac{p_B^{20}}{(1 - p_B)^{20}} \\
+&= \big(\frac{p_B}{1 - p_B}\big)^{20}
+\end{aligned}$$
+
+b)  *Model 0*
+$$ \begin{aligned}
+Lik(p_B) &= p_B^{600} * p_G^{400} \\
+&= p_B^{600} * p_B^{400} \\
+&= p_B^{1000}
+\end{aligned}$$
+
+*Model 1*
+$$ \begin{aligned}
+Lik(p_B) &= p_B^{600} * (1-p_B)^{400}
+\end{aligned}$$
+
+*LRT* 
+$$ \begin{aligned}
+LRT &= \frac{Model 0}{Model1} \\
+&= \frac{p_B^{1000}}{p_B^{600} * (1 - p_B)^{400}}\\
+&= \frac{p_B^{400}}{(1 - p_B)^{400}}\\
+&= \big(\frac{p_B}{1 - p_B}\big)^{400}
+\end{aligned}$$
+
+Here, we find that the LRT of both models in cases 1 and 2 have a exponential relationship where as the difference in boys to girls increases, so does $\frac{p_B}{1 - p_B}$
+
+c)  
+```{r}
+# function to calculate Lik(p_B) and log(Lik(p_B)) for grid of p_B values
+logLik = function(p, n_boys, n_girls) {
+  Lik = p^n_boys * (1-p)^n_girls    # Lik(p_B) 
+  logLik = log(Lik)                 # log(Lik(p_B))
+  lik.frame = data.frame(p, Lik, logLik)
+  return(lik.frame)
+}
+
+# plotting Lik and log(Lik) to find p hat
+pB = seq(0, 1, 0.001)
+lik.frame = logLik(p = pB, n_boys = 6000, n_girls = 4000)
+par(mfrow = c(1, 2))
+
+plot(pB, lik.frame$Lik, type = "l", cex.lab = 1.5, ylab = "Lik", ylim = c(0, 100))
+abline(v = pB[which(lik.frame$Lik == max(lik.frame$Lik))], lty = 2, col = 2)
+
+plot(pB, lik.frame$logLik, type = "l", cex.lab = 1.5, ylab = "Lik", ylim = c(0, 100))
+abline(v = pB[which(lik.frame$logLik == max(lik.frame$logLik))], lty = 2, col = 2)
+```
+In Case 3, we are unable to approximate the MLE through a grid search as the likelihoods are 0, and the log-likelihoods are infinite. This differs from cases 1 and 2 where we were able to approximate the MLE as 0.6.
+
+```{r}
+# numerically approximating MLE
+Lik.f = function(pb) {
+  return(6000 * log(pb) + 4000 * log(1-pb))
+}
+optimize(Lik.f, interval = c(0, 1), maximum = TRUE)
+```
+
+Thus, through MLE, we find the p_b hat is roughly 0.6, which is the same
+as cases 1 and 2.
+
+It is incorrect to perform LRT to compare cases 1, 2, and 3 because in comparing these three cases, we are comparing the same model with different sample sizes, thus any results would revolve around the sample size, which would not have an interpretable meaning.
+
+## Question 2
+a)  
+pdf of Y_i:
+$$
+f(Y_i) = \frac{1}{\sqrt{2\pi\sigma^2}}exp(-\frac{(Y_i-x_i\beta)^2}{2\sigma^2})
+$$
+
+$$\begin{aligned}
+Lik(Y_i) &= \prod_{i=1}^{n} f(Y_i) \\
+&= \prod_{i=1}^{n} \frac{1}{\sqrt{2\pi\sigma^2}}exp(-\frac{(Y_i-x_i\beta)^2}{2\sigma^2}) \\
+&= \frac{1}{\sqrt[n]{2\pi\sigma^2}}exp(-\frac{\sum^n_{i=1}(Y-X\beta)^2}{2\sigma^2}) \\
+&= \frac{1}{\sqrt[n]{2\pi\sigma^2}}exp(-\frac{(Y-X\beta)^T(Y-X\beta)}{2\sigma^2})
+\end{aligned}$$
+
+$$\begin{aligned}
+log(Lik(Y_i))
+&= log\big[\frac{1}{\sqrt[n]{2\pi\sigma^2}}exp(-\frac{(Y-X\beta)^T(Y-X\beta)}{2\sigma^2})\big] \\
+&= -\frac{n}{2} log(2\pi\sigma^2) -\frac{(Y-X\beta)^T(Y-X\beta)}{2\sigma^2}
+\end{aligned}$$
+
+b)
+$$\begin{aligned}
+\frac{d}{d\beta} log(Lik(Y_i))
+&= \frac{2\sigma^2[X^T(Y-X\beta)]}{(2\sigma^2)^2} \\
+0 &= \frac{X^T(Y-X\beta)}{\sigma^2} \\
+0 &= X^TY-X^TX\beta \\
+X^TY &=X^TX\beta \\
+\beta^{MLE} &= (X^TX)^{-1}X^TY
+\end{aligned}$$
+
+
+c) $\beta^{MLE}$ is equal to $\beta^{LSE}$
+
+d)
+$$\begin{aligned}
+E(\beta)^{MLE} &= E\big[(X^TX)^{-1}X^TY\big]
+&= (X^TX)^{-1}X^TE(X\beta+\epsilon)\\
+&= (X^TX)^{-1}X^TX\beta
+&= \beta
+\end{aligned}$$
+
+$$\begin{aligned}
+Var(\beta^{MLE}) &= E(\beta^2) - E(\beta)^2 \\
+&= E[(X^TX)^{-1}X^TY)^2] - \beta^2 \\
+&= E[\beta^2 + 2\beta^T(X^TX)^{-1}X^T\epsilon + ((X^TX)^{-1}X^T\epsilon)^2] - \beta^2 \\
+&= \beta^2 + E[(X^TX)^{-1}X^T\epsilon] - \beta^2 \\
+&= (X^TX)^{-1}X^TX(X^TX)^{-1}\sigma^2 \\
+&= (X^TX)^{-1}\sigma^2
+\end{aligned}$$
+
+## Question 3
+```{r}
+suppressMessages(library(boot))
+which(is.na(urine),arr.ind = TRUE)
+```
+
+```{r}
+urine <- urine[-c(1,55),]
+urine$r <- factor(urine$r, levels= c("0","1"),labels = c("no","yes"))
+str(urine)
+```
+
+a)  
+```{r, message=FALSE}
+suppressMessages(library(ggplot2))
+suppressMessages(library(ggpubr))
+
+plot_grav = ggplot(urine, aes(x = gravity, fill = r, color = r)) +
+  geom_histogram(position = "dodge", aes(y = after_stat(density))) +
+  ggtitle("Gravity")
+
+plot_ph = ggplot(urine, aes(x = ph, fill = r, color = r)) +
+  geom_histogram(position = "dodge", aes(y = after_stat(density))) +
+  ggtitle("pH")
+
+plot_osmo = ggplot(urine, aes(x = osmo, fill = r, color = r)) +
+  geom_histogram(position = "dodge", aes(y = after_stat(density))) +
+  ggtitle("Osmo")
+
+plot_cond = ggplot(urine, aes(x = cond, fill = r, color = r)) +
+  geom_histogram(position = "dodge", aes(y = after_stat(density))) +
+  ggtitle("Cond")
+
+plot_urea = ggplot(urine, aes(x = urea, fill = r, color = r)) +
+  geom_histogram(position = "dodge", aes(y = after_stat(density))) +
+  ggtitle("Urea")
+
+plot_calc = ggplot(urine, aes(x = calc, fill = r, color = r)) +
+  geom_histogram(position = "dodge", aes(y = after_stat(density))) +
+  ggtitle("Calc")
+
+ggarrange(plot_grav, plot_ph, plot_osmo, plot_cond, plot_urea, plot_calc, ncol = 2, nrow = 3)
+```
+
+Thus, we find that the covariates gravity, cond, urea, and calc may be
+the most useful in predicting r as we can observe a clear distinction in the distributions of the presence of crystals among the groups.
+
+b)  
+
+```{r}
+lm_urine = glm(r ~ ., family = binomial, data = urine)
+summary(lm_urine)
+```
+
+The residual deviance = 57.56 on 70 degrees of freedom. The residual
+deviance tells us how well the predictors are able to generate an accurate prediction. Comparing the null and residual deviance, we can observe that he deviance decreases when predictors are used to generate a prediction - this indicates that the model can fit the data better by using predictors than if it were to just use the intercept.
+
+c)  
+$H_0$: None of the predictors are significant in predicting the presence
+of crystals \
+$H_1$: At least one of the predictors is significant in
+predicting the presence of crystals
+
+```{r}
+lm_null = glm(r ~ 1, family = binomial, data = urine)
+
+anova(lm_null, lm_urine)
+```
+To test our hypothesis, an ANOVA was sed. It was concluded that we have
+sufficient statistical evidence to reject the null hypothesis, suggesting at least one of the predictors is important in predicting hte presence of crystals in urine. Additionally, the asymptotic distribution is a chi-square distribution.
+
+d)  To determine the best subset of predictors, a stepwise selection was
+    used with AIC criterion.
+```{r}
+step_lm = step(lm_urine, trace = 0)
+step_lm
+```
+Thus, from a stepwise selection with AIC criterion, we find the best
+subset to include gravity, cond, urea, and calc.
+
+e)  
+
+```{r, warning=FALSE}
+suppressMessages(library(pROC))
+
+urine_prob = predict(step_lm, type = "response")
+
+roc_obj = roc(response = urine$r, predictor = urine_prob)
+
+plot(roc_obj, legacy.axes = FALSE, print.auc = TRUE, print.three = TRUE, cex.lab = 2)
+
+AUC = auc(roc_obj)
+
+roc_log = c(coords(roc_obj, "b", ret = c("threshold", "se", "sp", "accuracy"), 
+                   best.method = "youden"), AUC)
+
+names(roc_log) = c("Threshold", "Sensitivity", "Specificity", "Accuracy", "AUC")
+
+t(roc_log)
+```
+
+The AUC is 0.893, and the best probability threshold is 0.483 with a
+corresponding sensitivity of 0.788, and specificity of 0.909
+
+f)  
+```{r}
+suppressMessages(library(caret))
+
+urine_pred = factor(ifelse(urine_prob > 0.483, "yes", "no"), c("yes", "no"))
+
+confusionMatrix(data = urine_pred, reference = urine$r)
+```
+
+*FPR* = $\frac{4}{40}$ = 0.091 \
+*TPR* = $\frac{26}{33}$ = 0.788 \
+*PPV*= $\frac{26}{30}$ = 0.867 \
+*NPR* = $\frac{40}{47}$ = 0.851 \
+
+g)  Considering the results from parts e and f, a fitted logistic
+    regression is effective in predicting the presence of oxilate
+    crystals in urine. We find that the model has a high true positive rate and 
+    and low false positive rate, suggesting that it can accurately identify
+    positive and negative presence.
+
+h)
+```{r}
+set.seed(10)
+train_ind = sample(1:77, 51)
+train_urine = urine[train_ind, ]
+test_urine = urine[-train_ind, ]
+```
+
+i)  
+
+```{r}
+lm_urine_tr = glm(r ~ ., family = binomial, data = train_urine)
+step_lm_tr = step(lm_urine_tr, trace = 0)
+step_lm_tr 
+```
+
+Under the training set, we find the same model consisting of the
+predictors gravity, cond, urea, and calc
+
+ii) 
+
+```{r, warning = FALSE}
+step_prob = predict(step_lm_tr, newdata = test_urine, type = "response")
+step_pred = factor(ifelse(step_prob > 0.483, "yes", "no"), c("yes", "no"))
+# here, we use the same threshold as in part f
+
+confusionMatrix(data = step_pred, reference = test_urine$r)
+# FPR = 0.12
+# TPR = 0.67
+# PPV = 0.75
+# NPV - 0.83
+
+# generating roc predictions
+roc_obj = roc(response = test_urine$r, predictor = step_prob)
+
+roc_log = c(coords(roc_obj, "b", ret = c("threshold", "se", "sp", "accuracy"),
+                   best.method = "youden"), AUC)
+
+names(roc_log) = c("Threshold", "Sensitivity", "Specificity", "Accuracy", "AUC")
+roc_log
+```
+Comparing this model to the previous model, we can observe that this model performs more poorly, achieving lower predictive values. Additionally, we can observe that there is a slightly different threshold of 0.512
+
+## Question 4
+```{r, message=FALSE}
+suppressMessages(library(faraway))
+data(seeds)
+## creating a new predictor describing the box:
+seeds$box <- factor(x=rep(1:8, c(6,6,6,6,6,6,6,6)),
+levels=c("1","2","3","4","5","6","7","8"))
+## removing one observation with missing data
+(seeds[is.na(seeds$germ),])
+
+seeds <- seeds[!is.na(seeds$germ),]
+str(seeds)
+```
+
+a)  
+```{r}
+# applying binomial regression model
+lm_seeds = glm(cbind(germ, covered) ~ box + moisture, family = binomial, data = seeds)
+summary(lm_seeds)
+```
+
+b)  We can gather that moisture is statistically significant. Additionally, holding box fixed, for every one unit change in the moisture variable, the outcome, germination,
+will be decreased by 0.138944. Similarly, when box = 4, and moisture is fixed, there is a decrease in germination by 0.007315. \
+
+c)  A Hosmer-Lemeshow test or chi-square may be performed to assess the
+    goodness of fit of the model. Here, I will perform a Hosmer-Lemeshow
+    test, where: \ $H_0$: no lack of fit\ $H_1$: lack of fit
+
+```{r}
+suppressMessages(library(ResourceSelection))
+hoslem.test(lm_seeds$y, fitted(lm_seeds), g = 10)
+```
+
+As the p-value < 0.05, we reject the null hypothesis, suggesting there
+is a lack of fit.
+
+d)  Other causes of a deviance value larger than expected include if the
+    wrong form of the model is used, if there are outliers, or if there
+    is sparse data.
+
+e)  
+```{r}
+dp = sum(residuals(lm_seeds, type = "pearson")^2/(47 - 9))
+print(dp)
+```
+
+Thus, we estimate the dispersion parameter to be 5.40607, suggesting the
+model is over-dispersed.
+
+f)  
+```{r}
+sumary(lm_seeds, dispersion = dp)
+# qpmod = glm(germ ~ box + moisture, family = quasibinomial, data = seeds)
+
+```
+Accounting for overdispersion, we find that all the variables are no longer statistically significant.
+
+g)  
+```{r}
+sumary(lm_seeds)
+```
+
+Comparing these models, we fidn that in the model that does not account for overdispersion, moisture is statistically significant, though the p-value for all variables increases when accountingfor overdispersion, and moisture is no longer statistically significant.
+
+## Question 5
+
+```{r, warning =FALSE}
+suppressMessages(library(readr))
+smoking = read_csv("smoking.csv")
+```
+
+a)
+$$
+\begin{aligned}
+Lik(\lambda) &= \prod_{i=1}^n \frac{e^{-\lambda} \lambda^{y_i}}{y_i!} \\
+&= \frac{e^{-\lambda} \lambda^{3}}{3!} \times \frac{e^{-\lambda} \lambda^{0}}{0!} \times \frac{e^{-\lambda} \lambda^{0}}{0!} \times \frac{e^{-\lambda} \lambda^{1}}{1!} \times \frac{e^{-\lambda} \lambda^{2}}{2!} \times \frac{e^{-\lambda} \lambda^{1}}{1!} \\
+&= \frac{e^{-6\lambda} \lambda^{7}}{3! \cdot 0! \cdot 0! \cdot 1! \cdot 2! \cdot 1!} \\
+&= \frac{e^{-6\lambda} \lambda^{7}}{12}
+\end{aligned}
+$$
+
+
+$$
+\begin{aligned}
+\log(\text{Lik}(\lambda)) &= \log \left( \frac{e^{-6\lambda} \lambda^{7}}{12} \right) \\
+&= \log(e^{-6\lambda}) + \log(\lambda^{7}) - \log(12) \\
+&= 7 \log(\lambda) - 6\lambda - \log(12)
+\end{aligned}
+$$
+
+
+b)  A reasonable estimate for $\lambda$ is 7/6 as this value would maximize the log-likelihood. \
+
+c)  
+```{r, warning = FALSE}
+# using negative log likelihood becuase minimizing this function will
+# maximize log likelihood 
+nll_poiss = function(lambda, x, y) {
+  -sum(-lambda + y * log(lambda) - log(factorial(y)))
+}
+mle_model1 = optim(par = 1, fn = nll_poiss, x = smoking$location,
+                   y = smoking$cigarettes)
+mle_model1$par
+```
+
+d)
+$$\begin{aligned}
+Lik(\lambda_w) &= \prod\frac{e^{-\lambda_w}\lambda_w^{y_i}}{y_i!} \\
+&= \frac{e^{-\lambda_w}\lambda_w^{0}}{0!} \times \frac{e^{-\lambda_w}\lambda_w^{0}}{0!} \times \frac{e^{-\lambda_w}\lambda_w^{1}}{1!}\\
+&= e^{-3\lambda_w}\lambda_w
+\end{aligned}$$
+
+$$\begin{aligned}
+log(Lik(\lambda_w)) &= log(e^{-3\lambda_w}\lambda_w) \\
+&= -3\lambda_w + log(\lambda_w) \\
+\end{aligned}$$
+
+$$\begin{aligned}
+Lik(\lambda_H) &= \prod\frac{e^{-\lambda_H}\lambda_H^{y_i}}{y_i!} \\
+&= \frac{e^{-\lambda_H}\lambda_H^3}{3!} \times \frac{e^{-\lambda_H}\lambda_H^2}{2!} \times \frac{e^{-\lambda_H}\lambda_H^1}{1!} \\
+&= \frac{e^{-3\lambda_H}\lambda_H^6}{12}
+\end{aligned}$$
+
+$$\begin{aligned}
+log(Lik(\lambda_H)) &= log(\frac{e^{-3\lambda_H}\lambda_H^{6}}{12}) \\
+&= 6log(\lambda_H) - 3\lambda_H - log(12) \\
+\end{aligned}$$
+
+e)  Reasonable estimate for $\lambda_w$ is 1/3, and a reasonable
+    estimate for $\lambda_H$ is 2. This is because these values would maximize the log-likelihood. 
+
+f)  
+```{r, warning = FALSE}
+df_w = smoking[!(smoking$location %in% 0),]
+df_H = smoking[!(smoking$location %in% 1),]
+
+mle_w = optim(par = 1, fn = nll_poiss, x = df_w$location, y = df_w$cigarettes)
+mle_w$par
+
+mle_H = optim(par = 1, fn = nll_poiss, x = df_H$location, y = df_H$cigarettes)
+mle_H$par
+```
+Thus, the MLE estimate for $\lambda_w$ = 0.3333008, and the estimat for $\lambda_H$ = 2
+
+g)  
+$log(Lik(\lambda)) = -6e^{\beta_0+\beta_1x} + 7(\beta_0+\beta_1x) - log(12)$
+
+h)  
+```{r}
+nll_poiss_1 = function(beta, x, y) {
+  b0 = beta[1]
+  b1 = beta[2]
+  lambda = exp(b0 + b1 * x) #transform the value of lambda
+  -sum(-lambda + y * log(lambda) - log(factorial(y)))
+}
+
+mle_model3 = optim(par = c(0,0), fn = nll_poiss_1, x= smoking$location,
+                   y = smoking$cigarettes)
+mle_model3$par
+```
+Thus, the mle estimates for $\beta_0$ and $\beta_1$ are 0.693190, and -1.791568, respectively.
+
+i)  
+```{r}
+# model 3
+modcig = glm(cigarettes ~ location, family = "poisson", data = smoking)
+sumary(modcig)
+```
+Thus, we find that our estimates for model 3 are the same.

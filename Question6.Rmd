@@ -1,0 +1,131 @@
+---
+title: "Question 6"
+author: "Yun Kyaw"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r}
+suppressMessages(library(faraway))
+suppressMessages(library(ggplot2))
+suppressMessages(library(dplyr))
+
+data(wavesolder)
+defects <- c(wavesolder$y1,wavesolder$y2,wavesolder$y3)
+x <- rbind(wavesolder[,4:10],wavesolder[,4:10],wavesolder[,4:10])
+wavesolder_long <- cbind(defects,x)
+wavesolder_long$replicate <- as.factor(c(rep(1,16),rep(2,16),rep(3,16)))
+rownames(wavesolder_long) <- 1:48
+```
+
+# 6a
+```{r}
+var_names = colnames(wavesolder_long)[! colnames(wavesolder_long) %in% c('defects', 'replicate')]
+for (var in var_names) {
+  plot = ggplot(wavesolder_long, aes_string(x = var, y = defects)) +
+    geom_boxplot(outlier.alpha = 0.5) +
+    facet_wrap(~ replicate) +
+    labs(title = paste("Defects vs", var, "across Replicates"),
+         x = var, y = "Number of Defects") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),
+          text=element_text(size=21))
+  print(plot)
+}
+```
+In defects vs prebake, we can observe that there is not a significant number of defects given the prebake, however, in the second replicate there is a greater variance in the number of defects when prebake = 2. \
+In defects vs flux, we can observe that that are slightly more defects when flux = 1 in all replcate groups, and that there is a greater variance in the the number of defects in the 2nd group of replicates when flux = 1. \
+In defects vs speed, we can observe that when speed = 2, there are more defects, and there is a greater variance in the number of defects of this group compared to when spee = 1. \
+In defects vs preheat, we can observe that there are slightly more defects when preheat = 1 among the three replicate groups. \
+In defects vs cooling and defects vs agitator, there is no notable relationship amongst the number of defects in the three replicate groups when cooling = 1, or when cooling = 2. \
+In defects vs temperature, there are more defects when temp = 1, and there is a greater variance of this group amongst the three replicates. \
+Thus, this suggests that certain variables are correlated to an increased number of defects.
+
+
+```{r}
+# anova comparing three groups
+summary(aov(glm(defects ~ as.factor(replicate), family = 'poisson',data = wavesolder_long)))
+
+# plotting defects vs replicates to confirm anova
+ggplot(wavesolder_long, aes(x = as.numeric(rownames(wavesolder_long)), y = defects,
+                            color = replicate)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Defects vs Replicates",
+       x = "Row Number", y = "Number of Defects")
+```
+Through the anova, we can observe that the replicate number is not statistically significantly in the relationship with the number of defects (P = 0.66). This is further observed through the line graph, as we do not see a difference in trend among the three replicate groups.
+
+# 6b
+```{r}
+for (i in (1:3)) {
+  data = wavesolder_long %>% filter(replicate == i)
+  data = data[,1:3]
+  data[] = lapply(data, as.numeric)
+  var = 0
+  mean_val = rowMeans(data)
+  var_val = apply(data, 1, var)
+  plot(mean_val, var_val, xlab = "Mean", ylab = "Variance", main = paste("Replicate", i))
+  abline(0,1)
+}
+```
+Among the three replicates, we can observe what looks like an exponential relationship of mean and variance, where as mean increases, variance increases significantly. This makes it much harder to interpret the values in the tail on the left side. From this graph we can also observe that a poisson model does not seem viable, as one of the key assumptions of a poisson model is that the mean is equal to the variance, thus, we would expect to see a 1:1 relationship of variance and mean.
+
+```{r}
+for (i in (1:3)) {
+  data = wavesolder_long %>% filter(replicate == i)
+  data = data[,1:3]
+  data[] = lapply(data, as.numeric)
+  var = 0
+  mean_val = rowMeans(data)
+  var_val = apply(data, 1, var)
+  plot(log(mean_val), log(var_val), xlab = "log Mean", ylab = "log Variance", main = paste("Replicate", i))
+  abline(0,1)
+}
+```
+Through a log scale of both variables, we can observe that there still does not exist a 1:1 relationship of mean and variance, as well that the variance is rouughly twice the mean.
+
+# 6c
+```{r}
+wavesolder_long = wavesolder_long[, -9]
+fit_p = glm(defects ~. , family = poisson, data = wavesolder_long)
+pchisq(deviance(fit_p), df.residual(fit_p), lower.tail = FALSE)
+deviance(fit_p)
+```
+As p < 0.05, we reject the null hypothesis - suggesting there is a lack of fit in the data. This is concurred by the deviance of the model, which is large, as well indicating a less accurate model.
+
+# 6d
+```{r}
+halfnorm(residuals(fit_p, type = "deviance"))
+```
+Through the QQ plot, we can observe that there is an outlier in row 27. As well, we can observe that there appears to be a lack of fit as we do not see a straight trend.
+
+# 6e
+```{r}
+wavesolder_long = wavesolder_long[-c(27), ]
+dim(wavesolder_long)
+
+fit_p1 = glm(defects ~. , family = poisson, data = wavesolder_long)
+pchisq(deviance(fit_p1), df.residual(fit_p1), lower.tail = FALSE)
+deviance(fit_p1)
+```
+We find that there is still a lack of fit in the model, as the p < 0.05, and the devaicne is quite large, though it has improved as the deviance has decreased in this model.
+
+# 6f
+```{r}
+fit_qp = glm(defects ~ ., family = quasipoisson, wavesolder_long)
+dp = sum(residuals(fit_qp, type = "pearson")^2)/df.residual(fit_qp)
+print(dp)
+```
+
+```{r}
+sumary(fit_qp)
+
+drop1(fit_qp, test = "F")
+```
+We find that both sets of test produce similar outputs, and that with a significance level of 0.05, we find that the predictors prebake, flux, speed, cooling, and temp are significant. For prebake, level 2 leads to higher rates as the coefficient is positive. For flux, level 1 leads to higher rates as the coefficient is negative. For speed, level 2 leads to higher rates. For cooling level 1 leads to higher rates. And lastly, for temp, level 1 leads to higher rates.
+
+# 6g
+```{r}
+halfnorm(residuals(fit_qp, type = "deviance"))
+```
+We can observe that the quasi-poisson fits the data better, as there is a straighter fit. Furthermore, there may still be an outlier or influential point at row 25.

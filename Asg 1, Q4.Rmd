@@ -1,0 +1,50 @@
+---
+title: "Asg 1 Q4"
+author: "Yun Kyaw"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(dplyr)
+library(faraway)
+
+data(seeds)
+## creating a new predictor describing the box:
+seeds$box <- factor(x=rep(1:8, c(6,6,6,6,6,6,6,6)),
+levels=c("1","2","3","4","5","6","7","8"))
+## removing one observation with missing data
+(seeds[is.na(seeds$germ),])
+
+seeds <- seeds[!is.na(seeds$germ),]
+str(seeds)
+```
+
+```{r, warning = FALSE}
+y = seeds$germ/100
+# ensure y within (0, 1) so logit can be applied
+y[y == 0] = 0.000001
+y[y == 1] = 0.999999
+
+mu = y
+eta = logit(mu)
+z = eta + (y-mu)/(mu * (1-mu))
+w = 100 * mu *(1-mu)
+lmod = lm(z ~ box + moisture, weights = w, data = seeds)
+
+for (i in 1:8) {
+  eta = lmod$fit
+  mu = ilogit(eta)
+  z = eta + (y-mu)/(mu * (1-mu))
+  w = 100 * mu *(1-mu)
+  lmod = lm(z ~ box + moisture, weights = w, data = seeds)
+  dev = 2 * sum((y) * log(y / mu) + (1 - y) * log((1 - y) / (1 - mu)))
+  cat(i, round(coef(lmod), 5), "Deviance:", dev, "\n")
+}
+
+# double checking the solutions
+lm_seeds = glm(germ/100 ~ box + moisture, family = binomial, data = seeds)
+summary(lm_seeds)
+```

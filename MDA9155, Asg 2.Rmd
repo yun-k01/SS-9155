@@ -1,0 +1,338 @@
+---
+title: "Assignment 2"
+author: "MDA 9155 - Instructor: Dr. Camila de Souza"
+date: "Winter 2025"
+output: pdf_document
+latex_engine: xelatex
+header-includes:
+- \usepackage[fontsize=12pt]{scrextend}
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(MASS)
+library(faraway)
+library(ggplot2)
+library(AER)
+library(pscl)
+library(nnet)
+```
+
+\textbf{Student name: Yun Kyaw}
+
+\textbf{Student number: 251102171}
+
+## Question 1
+
+### a)
+$$
+logl = \sum^n_{i=1} (-\mu_i + y_ilog(\mu_i)-log(y_i!))
+$$
+In the saturated model, $\mu$ =  y, thus we get:
+$$
+\begin{aligned}
+logl_{sat} = \sum^n_{i=1} (-y_i + y_i log(y_i)-log(y_i!))\\
+logl_M = \sum^n_{i=1} (-\hat{\mu_i} + y_ilog(\hat{\mu_i})-log(y_i!))
+\end{aligned}
+$$ 
+$$
+\begin{aligned}
+D_M &= 2(logl_{sat} - logl_M) \\
+&= 2\big[\sum^n_{i=1} (-y_i + y_i log(y_i)-log(y_i!)) - \sum^n_{i=1} (-\hat{\mu_i} + y_ilog(\hat{\mu_i})-log(y_i!)) \big] \\
+&= 2\big[\sum^n_{i=1} (-y_i + y_i log(y_i)-log(y_i!) +\hat{\mu_i} - y_ilog(\hat{\mu_i}) + log(y_i!)) \big] \\
+&= 2\big[\sum^n_{i=1} (y_i log(y_i) - y_ilog(\hat{\mu_i}) - y_i + \hat{\mu_i} - log(y_i!)   + log(y_i!)) \big] \\
+&= 2\big[\sum^n_{i=1} y_i log\frac{y_i}{\hat{\mu_i}} - y_i + \hat{\mu_i} \big] \\
+&= 2\big[\sum^n_{i=1} y_i log\frac{y_i}{\hat{\mu_i}} - (y_i - \hat{\mu_i}) \big]
+\end{aligned}
+$$
+
+\newpage
+### b)
+```{r}
+data_smoking <- read.csv("smoking.csv")
+data_smoking$location <- factor(data_smoking$location,levels=c(0,1),
+                                labels=c("Home","Work"))
+data_smoking
+
+fit_P <- glm(cigarettes~ location,
+             data = data_smoking,
+             family = poisson)
+coef(fit_P)
+```
+
+```{r}
+beta0 = 0.6931472
+beta1 = -1.7917595
+x_var = ifelse(data_smoking$location == 'Home', 0, 1)
+y_var = data_smoking$cigarettes
+y_var[y_var == 0] = 1e-100  # replace y = 0 to a very small number as
+# log(0) is undefined 
+
+mu = exp(beta0 + beta1 * x_var)
+
+D_smoking = 2 * sum(y_var * log(y_var / mu) - (y_var - mu))
+D_smoking
+deviance(fit_P)
+```
+
+\newpage
+
+## Question 2
+```{r}
+bacteria$ap <- factor(as.character(bacteria$ap),levels=c("p","a"),
+                      labels = c("Placebo","Active"))
+```
+
+### a)
+```{r}
+log_bacteria = glm(y ~ ap + week + ap:week, family = binomial, data = bacteria)
+summary(log_bacteria)
+```
+
+\newpage
+### b)
+$$
+\begin{aligned}
+log\big(\frac{P(y=1)}{P(y=0)}\big) &= \beta_0 + \beta_1x_1 + \beta_2x_2 + \beta_2x_1x_2 \\
+&= 2.36158 - 0.63013*ap_{active} -0.08318*week - 0.04714 * ap_{active}* week
+\end{aligned}
+$$
+
+\newpage
+### c)
+```{r}
+exp(coefficients(log_bacteria))
+```
+$\beta_0$ \
+The intercept is looking at presence of bacteria of the placebo group during week 0. The odds of this group having bacteria is 10.61 times greater than not having it.\
+
+$\beta_1$ \
+The odds of bacteria occurring decreases by 47% in the active treatment group, as compared to the placebo group at week 0. \
+
+$\beta_2$ \
+The odds of bacteria occurring decreases by 8% in the placebo group for every week. \
+
+$\beta_3$ \
+The odds of bacteria occurring in the active treatment group for every week that passes decreases by 5%, as compared to the control group.
+
+\newpage
+### d)
+The p-values from the summary table may not be a good way to assess the significance of individual predictors because due to the interaction term, there is multicollinearity in the dataset, skewing the standard errors, and thus the p-values. Instead, a likelihood ratio test (LRT) or anova can be used. The LRT allows you to compare a full model with the predictor of interest to a model without the predictor of interest. The anova allows for testing of individual predictors through comparing predictions from the two models.
+
+\newpage
+### e)
+```{r}
+full_model = log_bacteria
+reduced_model = glm(y ~ ap + week, family = binomial, data = bacteria)
+
+anova(reduced_model, full_model, test = "Chi")
+```
+Here, we have performed an anova to looked at the significance of the interaction term. With a p > 0.05, we fail to reject the null hypothesis, suggesting that there is no difference in the group means - and that the interaction term is not statistically significant
+
+\newpage
+## Question 3
+```{r}
+elephant <- read.csv("elephant.csv")
+str(elephant)
+```
+### a)
+```{r}
+ggplot(aes(x = MATINGS), data = elephant) +
+  geom_histogram()
+```
+The data is skewed to the right, which follows a Poisson distribution, thus suggesting that a Poisson regression may be appropriate.
+
+\newpage
+### b)
+```{r}
+lm_elephant = lm(MATINGS ~ AGE, data = elephant)
+elephant_res = resid(lm_elephant)
+
+ggplot(aes(x = AGE, y = MATINGS), data = elephant) +
+  geom_point(size = 0.5) +
+  geom_smooth(method = "lm", formula = y ~ x) 
+
+plot(elephant$MATINGS, elephant_res)
+abline(0,0)
+```
+We find that modelling the counts with a linear regression may not be appropriate because the line does not fit the data well. Additionally, through the residual plot, we observe that there is not equal variance.
+
+\newpage
+### c)
+```{r}
+mean_mating = c()
+
+elephant_ages = elephant$AGE %>% unique()
+i = 1
+
+for (age in elephant_ages) {
+  data = elephant %>% filter(AGE == age)
+  mean = mean(data$MATINGS)
+  mean_mating[i] = round(mean)
+  i = i+ 1
+}
+log_mean = log(mean_mating)
+
+data = tibble(ages = elephant_ages, log_mean = log_mean)
+
+ggplot(data, aes(x = ages, y = log_mean)) +
+    geom_point()
+```
+Through this plot, we can assess the assumption of poisson response - considering the equal distance of the events (ages), and the similarity in log mean, this suggests that the counts of matings could be represented as a poisson.\
+However, there is no evidence of a quadratic trend in this plot. \
+
+\newpage
+### d)
+```{r}
+pois_elephant = glm(MATINGS ~ AGE, family = "poisson", data = elephant)
+sumary(pois_elephant)
+exp(0.068693)
+```
+Interpretation: for every 1 year increase in age the odds of mating increases by 1.0711
+
+\newpage
+### e)
+```{r}
+ci_elephant = confint(pois_elephant, level = 0.95)
+exp(ci_elephant)
+```
+For every 1 year increase in age, the odds of mean number of matings will increase by 1.04 to 1.10.
+
+\newpage
+### f)
+```{r}
+exp(31*ci_elephant)
+
+```
+The predicted mating rate for a 31 year old elephant increases by 3.64 to 19.39 odds.
+
+\newpage
+### g)
+```{r}
+null_model = glm(MATINGS ~ 1, family = "poisson", data = elephant)
+sat_model = pois_elephant
+anova(null_model, sat_model, test = "Chisq")
+```
+From a drop-in deviance test, we find that the matings are significantly related to age as p < 0.05, thus we have sufficient evidence to reject the null hypothesis - suggesting that the Age predictor is significant in predicting Matings.
+
+\newpage
+### h)
+```{r}
+quad_model = glm(MATINGS ~ AGE + I(AGE^2), family = "poisson", data = elephant)
+anova(sat_model, quad_model, test = "Chisq")
+```
+The quadratic model is not preferred to the linear model considering p > 0.05
+
+\newpage
+### i)
+```{r}
+1-pchisq(pois_elephant$deviance, pois_elephant$df.residual)
+```
+Considering p-value is small, we find that there is a lack of fit with age as the sole predictor.
+
+
+\newpage
+### j) 
+```{r}
+sumary(pois_elephant)
+dp = 51.01163/39
+dp
+
+qp_model = glm(MATINGS ~ AGE, family = quasipoisson, data = elephant)
+sumary(qp_model)
+```
+The estimated coefficients have not changed, though the standard errors of both have increased in the quasipoisson, and the estimated dispersion parameter of the quasipoission has decreased. You are less likely to obtain a significant result when testing coefficients in a quasipoisson because the quasipoisson takes variance into account, which affects the standard error error by increasing it - thus decreasing the p-value.
+
+\newpage
+## Question 4
+```{r}
+data(NMES1988)
+str(NMES1988)
+```
+### a)
+```{r}
+ggplot(aes(x = visits), data = NMES1988) +
+  geom_histogram()
+```
+
+\newpage
+### b)
+```{r}
+zip_NMES = zeroinfl(visits ~ chronic + health + insurance, data = NMES1988)
+zip_NMES
+exp(coefficients(zip_NMES))
+```
+count_chronic: Having a chronic condition increases the number of visits by 12.6%, as compared to not having a chronic condition. \
+count_healthpoor: Having poor health increases visits by 34.3%. \
+zero_(Intercept) : The logistic intercept represents the log-odds of no visits when there is no chronic condition, average health, and no insurance, and the probability of being in this group with these conditions is 40%. \
+zero_insuranceyes: People with insurance are 58.8% less likely to never visit the doctor. 
+
+\newpage
+### c)
+```{r}
+eta = -0.40531 + (-0.55228 * 2) + (-0.88638  * 1)
+
+p = exp(eta) / (1 + exp(eta))
+p
+
+yhat_nmes = predict(zip_NMES, newdata = data.frame(chronic = 2, health = "poor", insurance = "yes"), type = "zero")
+yhat_nmes
+```
+The probability of an individual with insurance and two chronic conditions never visiting the doctor is roughly 8%
+
+\newpage
+### d)
+```{r}
+lambda = 1.5588 + (0.1187 * 4) + (0.2948 * 1) + (0.1446  * 0)
+lambda = exp(lambda)
+p_lamda = (lambda^5*exp(-lambda))/factorial(5)
+
+eta = -0.40531 + (-0.55228 * 4) + (0.02316 * 1) + (-0.88638  * 0)
+p_eta = (exp(eta)) / (1 + (exp(eta)))
+
+p_5 = (1-p_eta)*p_lamda
+p_5
+
+lambda_pred = predict(zip_NMES, newdata = data.frame(chronic = 4, health = "poor",
+                                                     insurance = "no"), type = "response")
+pred_5 = dpois(5, lambda_pred)
+
+zero_pred = predict(zip_NMES, newdata = data.frame(chronic = 4, health = "poor",
+                                                   insurance = "no"), type = "zero")
+prob_5 = (1-zero_pred) *pred_5
+prob_5
+```
+The probability of someone with 4 chronic conditions, poor health, and no health insurance is 3-4% likely to visit the doctor 5 times.
+
+\newpage
+## Question 5
+```{r}
+data(hsb)
+hsb = hsb[, -1]
+str(hsb)
+```
+a)
+```{r}
+hsb_glm = multinom(prog ~ ., data = hsb)
+hsb_glm
+```
+
+\newpage
+### b) 
+```{r}
+exp(coefficients(hsb_glm))
+```
+A one-unit increase in the reading score decreases the odds of being in the general program by 0.957, and decreases the odds of being in the vocation group by 0.966. \
+A one-unit increase in the writing score decreases the odds of being in teh general program by 0.964, and decreases the odds of being in the vocation program by 0.969. \
+A one-unit increase in the math score decrease the odds of being in the general program by 0.896, and decreases the odds of being in the vocation program by 0.892. \
+A one-unit increase in the science score increases the odds of being in the general program by 1.107, and increases the odds of being in the vocation program by 1.052. \
+Finally, a one-unit increase in the social studies score decreases odds of being in the general program by 0.98, and decreases odds of being in the vocation program by 0.922.
+
+\newpage
+### c)
+The science scores gives an unexpected result. It would be expected that an increase in science scores would lead to an increase in being in the academic program, not a decrease. However, this could be due to students who have an increased science grade preferring to being hands-on, thus preferring to enter a vocational program, or there may also be an association of science scores to another variable, such as race or socioeconomic status which would affect the chosen high school program type.
+

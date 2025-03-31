@@ -1,0 +1,32 @@
+---
+title: "Multinomial Logit Model"
+author: "Yun Kyaw, 251102171"
+date: "`r Sys.Date()`"
+output: pdf_document
+latex_engine: xelatex
+---
+$$
+\begin{aligned}
+p_{i1} &= \frac{1}{1+\sum^{J}_{j=2} \exp(\eta_{ij})} \\
+p_{ij} &= \frac{\exp(\eta_{ij})}{1+\sum^{J}_{j=2} \exp(\eta_{ij})} \\
+\eta_{ij} &= x_i^T\beta_j
+\end{aligned}
+$$
+
+$$
+\begin{aligned}
+loglik(\beta_2, ..., \beta_J)
+&= \sum_{i=1}^{n} \sum_{j=1}^{J} y_{ij} \log(p_{ij}) + C \\
+&= \sum_{i=1}^{n} \left[ y_{i1} \log(p_{i1}) + \sum_{j=2}^{J} y_{ij} \log(p_{ij}) \right]  + C \\
+&= \sum_{i=1}^{n} \left[ y_{i1} \log \left(\frac{1}{1+\sum^{J}_{j=2} \exp(\eta_{ij})} \right) + \sum_{j=2}^{J} y_{ij} \log \left(\frac{\exp(\eta_{ij})}{1+\sum^{J}_{j=2} \exp(\eta_{ij})} \right) \right]  + C \\
+&= \sum_{i=1}^{n} \left[ y_{i1} \left( \log 1 - \log(1+\sum^{J}_{j=2} \exp(\eta_{ij})) \right) + \sum_{j=2}^{J} y_{ij} \left(\eta_{ij}
+- \log(1+\sum^{J}_{j=2} \exp(\eta_{ij}) ) \right) \right]  + C \\
+&= \sum_{i=1}^{n} \left[ y_{i1} \left( - \log(1+\sum^{J}_{j=2} \exp(\eta_{ij})) \right) + \sum_{j=2}^{J} y_{ij} \left(\eta_{ij}
+- \log(1+\sum^{J}_{j=2} \exp(\eta_{ij}) ) \right) \right]  + C \\
+&= \sum_{i=1}^{n} \left[ \sum_{j=2}^{J} y_{ij} \eta_{ij} - y_{i1} \log \left(1+\sum^{J}_{j=2} \exp(\eta_{ij}) \right)
+-  \sum_{j=2}^{J} y_{ij} \log \left(1+\sum^{J}_{j=2} \exp(\eta_{ij} ) \right) \right]  + C \\
+&= \sum_{i=1}^{n} \left[ \sum_{j=2}^{J} y_{ij} \eta_{ij} - \sum_{j=1}^{J} y_{ij} \log \left(1+\sum^{J}_{j=2} \exp(\eta_{ij} ) \right) \right]  + C \\
+&= \sum_{i=1}^{n} \left[ \sum_{j=2}^{J} y_{ij} \eta_{ij} - \log \left(1+\sum^{J}_{j=2} \exp(\eta_{ij})\right) \sum_{j=1}^{J} y_{ij} \right]  + C \\
+&= \sum_{i=1}^{n} \left[ \sum_{j=2}^{J} y_{ij} x_i^T\beta_j - \log \left(1+\sum^{J}_{j=2} \exp(x_i^T\beta_j)\right) \sum_{j=1}^{J} y_{ij} \right]  + C \\
+\end{aligned}
+$$
