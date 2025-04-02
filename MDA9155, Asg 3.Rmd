@@ -15,7 +15,11 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(faraway)
-
+library(ggplot2)
+library(lme4)
+library(gridExtra)
+library(sm)
+library(pbkrtest)
 ```
 
 \textbf{Student name: Yun Kyaw}
@@ -23,31 +27,43 @@ library(faraway)
 \textbf{Student number: 251102171}
 
 ## Question 1
-
 ### a)
 begin{align}
 $$ 
 \begin{align}
-\theta &= 
+f(y) &= \lambda exp(-\lambda y) \\
+logLik(y) &= ln(\lambda) (-\lambda y) \\
+&= exp[ln(\lambda) - \lambda y] \\
+&= exp[y(-\lambda) - (-ln(\lambda))] \\
+\implies \theta &= -\lambda \\
+\phi &= 1 \\
+a() &= 1 \\
+b() &= -ln(\lambda)  = -ln(\theta) \\
+c() &= 0
 \end{align}
 $$
 
 
 \newpage
 ### b)
-
+$$
+\begin {aligned}
+link &= b'(0) = -\frac{1}{\theta} = -\frac{1}{\mu} \\
+V(\mu) &= \mu^2
+\end {aligned}
+$$
 
 \newpage
 ### c)
-
+if $\mu$ = 0
 
 \newpage
 ### d)
-
+$\chi^2$ test because the exponential family belongs to a $\chi^2$ distribution
 
 \newpage
 ### e)
-
+$C = 2\sum[-log(\frac{y_i}{\hat{\mu_i}}) + \frac{y_i \hat{\mu_i}}{\hat{\mu_i}}]$
 
 \newpage
 
@@ -65,14 +81,19 @@ sumary(gala_pois)$coef
 ```
 
 \newpage
-### b)
+### b) **
 ```{r}
+y = gala$Species
+
+mu = y
+
 eta = log(mu)
 
 z = eta + (y-mu)/mu
 
-w = 
-lmod = lm(z ~ )
+w = 1/mu * ((1/mu)/(mu)) ^(-2)
+  
+lmod = lm(z ~ Area + Elevation + Nearest + Scruz + Adjacent, weights = w, gala)
 ```
 x1 = gala$Area
 x2 = gala$Elevation
@@ -90,12 +111,18 @@ V_mu = mu
 weight = 1/mu
 
 z = eta + (gala$Species - mu)/mu
-```
 
 \newpage
 ### c)
 ```{r}
-
+for (i in 1:5) {
+  eta = lmod$fit
+  mu = log(eta)
+  z = eta + (y-mu)/mu
+  w = 1/mu * ((1/mu)/(mu)) ^(-2)
+  lmod = lm(z ~ Area + Elevation + Nearest + Scruz + Adjacent, weights = w, gala)
+  cat(i, coef(lmod), "\n")
+}
 ```
 
 
@@ -116,8 +143,10 @@ denim <- denim[-which(denim$waste == max(denim$waste)),] #removing 2 outliers
 denim <- denim[-which(denim$waste == max(denim$waste)),]
 ```
 ### a)
-
-\newpage
+```{r}
+ggplot(aes(x = supplier, y = waste), data = denim) +
+  geom_point()
+```
 
 ### b)
 ```{r}
@@ -129,7 +158,6 @@ drop1(lmod, test = "F")
 
 ### c)
 ```{r}
-library(lme4)
 rmod = lmer(waste ~ 1+(1|supplier), denim, REML = TRUE)
 summary(rmod)
 ```
@@ -138,8 +166,8 @@ summary(rmod)
 
 ### d)
 ```{r}
-sigma2_alpha = 2.39^2 # var of random intercept
-sigma2 = 6.11^2 # var of fixed intercept
+sigma2_alpha = 2.391^2 # var of random intercept
+sigma2 = 6.107^2 # var of fixed intercept
 rho = sigma2_alpha/(sigma2_alpha + sigma2)
 ```
 
@@ -167,5 +195,81 @@ mean(lrt_star > lrt)
 
 # dont reject if > p - can remove random effect
 ```
+\newpage
 
+## Question 4
+```{r}
+data(ratdrink, package = "faraway")
+```
 
+### a)
+```{r}
+ggplot(aes(x = weeks, y = wt), data = ratdrink) +
+  geom_point() +
+  facet_wrap(~treat) 
+
+```
+
+\newpage
+
+### b)
+```{r}
+ml = lmer(wt ~ weeks * treat + (weeks | subject), ratdrink)
+summary(ml)
+```
+
+\newpage
+
+### c)
+```{r}
+ml_red = lmer(wt ~ weeks + (weeks | subject), ratdrink)
+anova(ml_red, ml)
+```
+
+\newpage
+### d)
+```{r}
+qqnorm(resid(ml))
+```
+\newpage
+
+### e)
+```{r}
+confint(ml)
+```
+From the confidence interval, we can gather that thyroxine is not significant, as the confidence interval includes 0. 
+
+\newpage
+
+## Question 5
+```{r}
+data("teengamb")
+```
+
+### a)
+```{r}
+with(teengamb, sm.regression(gamble, income, h = h.select(gamble, income)))
+```
+This plot is not linear
+
+\newpage
+
+### b)
+```{r}
+plot(teengamb$gamble ~ teengamb$income, col = gray(0.75), cex.lab = 1.5)
+spline_gamb = smooth.spline(teengamb$income, teengamb$gamble)
+lines(spline_gamb, lty = 2)
+
+spline_gamb$df
+```
+There are 2 degrees of freedom
+
+\newpage
+
+### c)
+```{r}
+plot(teengamb$gamble ~ teengamb$income, col = gray(0.75), cex.lab = 1.5)
+spline_gamb_df = smooth.spline(teengamb$income, teengamb$gamble, df = 5)
+lines(spline_gamb_df, lty = 2)
+```
+As the degrees of freedom increases, the curve becomes less smooth. Compared to the results of part b, the automatic choice is not satisfactory, as it is too smooth and fails to capture the general relationship.
