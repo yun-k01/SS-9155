@@ -3,7 +3,6 @@ title: "Bonus: Non-Parametric Regression"
 author: "MDA 9155 - Instructor: Dr. Camila de Souza"
 date: "Winter 2025"
 output: pdf_document
-latex_engine: xelatex
 header-includes:
 - \usepackage[fontsize=12pt]{scrextend}
 ---
@@ -17,7 +16,6 @@ library(splines)
 
 \textbf{Student number: 251102171} 
 
-
 ```{r}
 b0 = 2.2
 b1 = 1.77
@@ -29,6 +27,8 @@ y = f + rnorm(n, mean = 0, sd = 1)
 plot(x, y, xlab = "x", ylab = "f(x)", ylim = c(0, 35))
 ```
 
+\newpage
+
 # Kernel Smoothing
 ```{r}
 par(mfrow = c(1, 3))
@@ -37,6 +37,8 @@ for (bw in c(0.01, 0.1, 0.5)) {
   lines(ksmooth(x, y, kernel = "normal", bandwidth = bw))
 }
 ```
+
+\newpage
 
 # Regression Splines
 ```{r}
