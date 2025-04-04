@@ -76,64 +76,112 @@ head(gala)
 
 ### a)
 ```{r}
-gala_pois = glm(Species ~ ., family = poisson, data = gala)
+gala_pois = glm(Species ~ Area + Elevation + Nearest + Scruz + Adjacent, family = poisson, data = gala)
 sumary(gala_pois)$coef
 ```
 
 \newpage
-### b) **
-```{r}
-y = gala$Species
+### b)
 
-mu = y
-
-eta = log(mu)
-
-z = eta + (y-mu)/mu
-
-w = 1/mu * ((1/mu)/(mu)) ^(-2)
-  
-lmod = lm(z ~ Area + Elevation + Nearest + Scruz + Adjacent, weights = w, gala)
-```
-x1 = gala$Area
-x2 = gala$Elevation
-x3 = gala$Nearest
-x4 = gala$Scruz
-x5 = gala$Adjacent
-
-mu = (3.1548078779 - 0.0005799429 * x1 + 0.0035405940 * x2 + 0.0088255719 * x3 - 0.0057094223 * x4 - 0.0006630311 * x5)
-eta = log(mu)
-
-d_eta = 1/mu
-
-V_mu = mu
-
-weight = 1/mu
-
-z = eta + (gala$Species - mu)/mu
+$$
+\begin{aligned}
+\eta &= log(\theta) = log(\mu) \\
+\frac{d \eta} {d \mu} &= \frac{1}{\mu} \\
+V(\mu) &= \mu \\
+w &= e^{\eta}
+\end{aligned}
+$$
+The dependent variable has been __
 
 \newpage
 ### c)
-```{r}
-for (i in 1:5) {
-  eta = lmod$fit
-  mu = log(eta)
-  z = eta + (y-mu)/mu
-  w = 1/mu * ((1/mu)/(mu)) ^(-2)
-  lmod = lm(z ~ Area + Elevation + Nearest + Scruz + Adjacent, weights = w, gala)
-  cat(i, coef(lmod), "\n")
-}
-```
+```{r, eval = FALSE}
+y = gala$Species
+mu = y
+eta = log(mu)
+d_eta = 1/mu
+v = mu
+w = mu
+z = eta + (y - mu)/mu
 
+lmod = lm(z ~ Area + Elevation + Nearest + Scruz + Adjacent, weights = w, gala)
+coef(lmod)
+```
+We find that the coefficients of the first stage of the iteration are very similar to the Poisson GLM. Rounded to a whole number, the numbers are the same.
 
 \newpage
 ### d)
+```{r}
+eta = lmod$fit
+mu = exp(eta)
+z = eta + (y - mu)/mu
+w = mu
+lmod = lm(z ~ Area + Elevation + Nearest + Scruz + Adjacent, weights = w, gala)
+coef(lmod)
 
+dev = 2*sum(y * log(y) - y * eta - (y - exp(eta)))
+dev
+
+sumary(gala_pois)$coef
+```
+The deviance at this stage is still larger than the deviance from the GLM.
 
 \newpage
 ### e)
+```{r}
+eta = lmod$fit
+mu = exp(eta)
+z = eta + (y - mu)/mu
+w = mu
+lmod = lm(z ~ Area + Elevation + Nearest + Scruz + Adjacent, weights = w, gala)
+coef(lmod)
 
+dev = 2*sum(y * log(y) - y * eta - (y - exp(eta)))
+dev
+```
+These estiamte are much closer, and are nearly the same as the target
 
+\newpage
+### f)
+```{r}
+# first iteration
+eta = lmod$fit
+mu = exp(eta)
+z = eta + (y - mu)/mu
+w = mu
+lmod = lm(z ~ Area + Elevation + Nearest + Scruz + Adjacent, weights = w, gala)
+
+dev = 2*sum(y * log(y) - y * eta - (y - exp(eta)))
+dev
+
+# second iteration
+eta = lmod$fit
+mu = exp(eta)
+z = eta + (y - mu)/mu
+w = mu
+lmod = lm(z ~ Area + Elevation + Nearest + Scruz + Adjacent, weights = w, gala)
+
+dev = 2*sum(y * log(y) - y * eta - (y - exp(eta)))
+dev
+
+# third iteration
+eta = lmod$fit
+mu = exp(eta)
+z = eta + (y - mu)/mu
+w = mu
+lmod = lm(z ~ Area + Elevation + Nearest + Scruz + Adjacent, weights = w, gala)
+
+dev = 2*sum(y * log(y) - y * eta - (y - exp(eta)))
+dev
+```
+Comparing the final estimated coefficients to those of the GLM, we find that they are identical.
+
+\newpage
+### g)
+```{r}
+summary(lmod)
+```
+While the coefficients are the same, the standard errors are very different to those produced by the GLM fit.
 
 \newpage
 ## Question 3
@@ -195,6 +243,7 @@ mean(lrt_star > lrt)
 
 # dont reject if > p - can remove random effect
 ```
+
 \newpage
 
 ## Question 4
