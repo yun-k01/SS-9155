@@ -3,7 +3,6 @@ title: "Assignment 3"
 author: "MDA 9155 - Instructor: Dr. Camila de Souza"
 date: "Winter 2025"
 output: pdf_document
-latex_engine: xelatex
 header-includes:
 - \usepackage[fontsize=12pt]{scrextend}
 editor_options: 
@@ -28,9 +27,8 @@ library(pbkrtest)
 
 ## Question 1
 ### a)
-begin{align}
 $$ 
-\begin{align}
+\begin{aligned}
 f(y) &= \lambda exp(-\lambda y) \\
 logLik(y) &= ln(\lambda) (-\lambda y) \\
 &= exp[ln(\lambda) - \lambda y] \\
@@ -40,7 +38,7 @@ logLik(y) &= ln(\lambda) (-\lambda y) \\
 a() &= 1 \\
 b() &= -ln(\lambda)  = -ln(\theta) \\
 c() &= 0
-\end{align}
+\end{aligned}
 $$
 
 
@@ -96,7 +94,7 @@ The dependent variable has been transformed into z using the taylor series appro
 
 \newpage
 ### c)
-```{r, eval = FALSE}
+```{r}
 y = gala$Species
 mu = y
 eta = log(mu)
