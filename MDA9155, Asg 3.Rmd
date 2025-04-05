@@ -55,15 +55,15 @@ $$
 
 \newpage
 ### c)
-if $\mu$ = 0
+if $\mu$ = 0 then issues may arise as $\frac{1}{0}$ is not valid. 
 
 \newpage
 ### d)
-$\chi^2$ test because the exponential family belongs to a $\chi^2$ distribution
+$\chi^2$ test because there is a fixed, known dispersion parameter. 
 
 \newpage
 ### e)
-$C = 2\sum[-log(\frac{y_i}{\hat{\mu_i}}) + \frac{y_i \hat{\mu_i}}{\hat{\mu_i}}]$
+$D = 2\sum[y_i log(\frac{y_i}{\hat{\mu_i}}) - (y_i - \hat{\mu_i})]$
 
 \newpage
 
@@ -76,22 +76,23 @@ head(gala)
 
 ### a)
 ```{r}
-gala_pois = glm(Species ~ Area + Elevation + Nearest + Scruz + Adjacent, family = poisson, data = gala)
-sumary(gala_pois)$coef
+gala_pois = glm(Species ~ ., family = poisson, data = gala)
+sumary(gala_pois)
 ```
+We can observe that the deviance is 716.85, and the coefficients are relatively small. Area = -5.7994e-04, Elevation = 3.5406e-03, Nearest = 8.8256e-03, Scruz = -5.7094e-03, Adjacent = -6.6303e-04.
 
 \newpage
 ### b)
-
 $$
 \begin{aligned}
 \eta &= log(\theta) = log(\mu) \\
 \frac{d \eta} {d \mu} &= \frac{1}{\mu} \\
 V(\mu) &= \mu \\
-w &= e^{\eta}
+w &= \mu \\
+z &= log(\mu) + \frac{(y- \mu)}{\mu}
 \end{aligned}
 $$
-The dependent variable has been __
+The dependent variable has been transformed into z using the taylor series approximation.
 
 \newpage
 ### c)
@@ -122,9 +123,9 @@ coef(lmod)
 dev = 2*sum(y * log(y) - y * eta - (y - exp(eta)))
 dev
 
-sumary(gala_pois)$coef
+coef(gala_pois)
 ```
-The deviance at this stage is still larger than the deviance from the GLM.
+The deviance at this stage is larger than the deviance from the GLM and not very close.
 
 \newpage
 ### e)
@@ -139,7 +140,7 @@ coef(lmod)
 dev = 2*sum(y * log(y) - y * eta - (y - exp(eta)))
 dev
 ```
-These estiamte are much closer, and are nearly the same as the target
+These estimate are much closer, and are nearly the same as the target
 
 \newpage
 ### f)
@@ -173,6 +174,8 @@ lmod = lm(z ~ Area + Elevation + Nearest + Scruz + Adjacent, weights = w, gala)
 
 dev = 2*sum(y * log(y) - y * eta - (y - exp(eta)))
 dev
+
+coef(lmod)
 ```
 Comparing the final estimated coefficients to those of the GLM, we find that they are identical.
 
@@ -180,6 +183,7 @@ Comparing the final estimated coefficients to those of the GLM, we find that the
 ### g)
 ```{r}
 summary(lmod)
+sumary(gala_pois)
 ```
 While the coefficients are the same, the standard errors are very different to those produced by the GLM fit.
 
@@ -190,17 +194,20 @@ data(denim)
 denim <- denim[-which(denim$waste == max(denim$waste)),] #removing 2 outliers
 denim <- denim[-which(denim$waste == max(denim$waste)),]
 ```
+
 ### a)
 ```{r}
 ggplot(aes(x = supplier, y = waste), data = denim) +
-  geom_point()
+  geom_boxplot()
 ```
+From this plot, we can observe that there appears to be a relationship of waste and supplier, with the 5th supplier producing the most waste, and the 1st supplied producing the least on average.
 
 ### b)
 ```{r}
 lmod = lm(waste ~ supplier, denim)
-drop1(lmod, test = "F")
+summary(lmod)
 ```
+Considering all coefficients are not 0, and the p-value = 0.008, we find that supplier is statistically significant
 
 \newpage
 
@@ -209,15 +216,17 @@ drop1(lmod, test = "F")
 rmod = lmer(waste ~ 1+(1|supplier), denim, REML = TRUE)
 summary(rmod)
 ```
+The estimated standard deviation of supplier is 2.391, and the residual standard deviation is 6.107
 
 \newpage
-
 ### d)
 ```{r}
 sigma2_alpha = 2.391^2 # var of random intercept
 sigma2 = 6.107^2 # var of fixed intercept
-rho = sigma2_alpha/(sigma2_alpha + sigma2)
+corr = sigma2_alpha/(sigma2_alpha + sigma2)
+corr
 ```
+The estimated correlation for observations within the same supplier is 0.13
 
 \newpage
 
@@ -229,20 +238,19 @@ mmodstar = lmer(waste ~ 1 + (1|supplier), denim, REML = FALSE)
 lrt = as.numeric(2*(logLik(mmodstar) - logLik(nlmod)))
 ```
 
-```{r}
+```{r, message = FALSE}
 set.seed(23)
 lrt_star = numeric(1000)
 for (i in 1:1000) {
   rwaste = unlist(simulate(nlmod))
-  nlmodr = lm(rwaste ~ w, denim)
+  nlmodr = lm(rwaste ~ 1, denim)
   mmodr = lmer(rwaste ~ 1 + (1|supplier), denim, REML = FALSE)
   lrt_star[i] = 2*(logLik(mmodr) - logLik(nlmodr))
 }
 
 mean(lrt_star > lrt)
-
-# dont reject if > p - can remove random effect
 ```
+As p* > p, we fail to reject the null hypothesis, suggesting that we may remove the random effect supplier.
 
 \newpage
 
@@ -256,8 +264,8 @@ data(ratdrink, package = "faraway")
 ggplot(aes(x = weeks, y = wt), data = ratdrink) +
   geom_point() +
   facet_wrap(~treat) 
-
 ```
+Through this plot, we can observe that as the weeks continue, there is an increase in weight, though the degree to which weight increases appears to vary by treatment.
 
 \newpage
 
@@ -266,6 +274,7 @@ ggplot(aes(x = weeks, y = wt), data = ratdrink) +
 ml = lmer(wt ~ weeks * treat + (weeks | subject), ratdrink)
 summary(ml)
 ```
+The fixed effect intercept term represents the initial (week = 0) weight for rats that are in the control group. The interaction term between thiouracil and week suggests that rats in the thiouracil treatment group experience a decrease in weight, compared to the control group, by 9.37 grams as each week passes by. The random effect SD represents the variability in baseline weight across the rats.
 
 \newpage
 
@@ -274,19 +283,27 @@ summary(ml)
 ml_red = lmer(wt ~ weeks + (weeks | subject), ratdrink)
 anova(ml_red, ml)
 ```
+As p < 0.05, we can observe that there is a significant treatment effect
 
 \newpage
 ### d)
 ```{r}
+fit_val = fitted(ml)
+res_val = resid(ml)
+
+plot(fit_val, res_val)
+
 qqnorm(resid(ml))
 ```
+We can observe that there is equal variance and normality through these plots.
+
 \newpage
 
 ### e)
 ```{r}
 confint(ml)
 ```
-From the confidence interval, we can gather that thyroxine is not significant, as the confidence interval includes 0. 
+From the confidence interval, we can gather that the random effect weeks is significant. Furthermore, the thyroxine is not significantly different than the control group.
 
 \newpage
 
@@ -299,7 +316,7 @@ data("teengamb")
 ```{r}
 with(teengamb, sm.regression(gamble, income, h = h.select(gamble, income)))
 ```
-This plot is not linear
+This fit is not linear
 
 \newpage
 
@@ -309,9 +326,8 @@ plot(teengamb$gamble ~ teengamb$income, col = gray(0.75), cex.lab = 1.5)
 spline_gamb = smooth.spline(teengamb$income, teengamb$gamble)
 lines(spline_gamb, lty = 2)
 
-spline_gamb$df
+cat("There are", spline_gamb$df, "degrees of freedom")
 ```
-There are 2 degrees of freedom
 
 \newpage
 
